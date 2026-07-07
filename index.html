@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0e8a68">
+  <meta name="description" content="ثبات — تطبيق لمتابعة العادات اليومية والصلوات">
+  <title>ثبات | متابعة العادات اليومية</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-icon">🌱</span>
+      <h1>ثبات</h1>
+    </div>
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="تبديل الوضع الليلي">🌙</button>
+  </header>
+
+  <main id="app">
+
+    <!-- ═══════════ صفحة اليوم ═══════════ -->
+    <section id="view-today" class="view" aria-labelledby="tab-today">
+
+      <div class="date-block">
+        <p id="date-gregorian" class="date-main"></p>
+        <p id="date-hijri" class="date-sub"></p>
+      </div>
+
+      <div class="card message-card" id="yesterday-card">
+        <div class="card-title">
+          <span aria-hidden="true">💌</span>
+          <h2>رسالة من أمس</h2>
+        </div>
+        <p id="yesterday-message" class="yesterday-text"></p>
+      </div>
+
+      <div class="card progress-card">
+        <div class="progress-ring-wrap">
+          <svg class="progress-ring" viewBox="0 0 120 120" role="img" aria-labelledby="progress-label">
+            <circle class="ring-track" cx="60" cy="60" r="52"></circle>
+            <circle id="ring-fill" class="ring-fill" cx="60" cy="60" r="52"></circle>
+          </svg>
+          <div class="progress-center">
+            <span id="progress-count" class="progress-count">٠/٨</span>
+          </div>
+        </div>
+        <div class="progress-info">
+          <p id="progress-label" class="progress-title">إنجاز اليوم</p>
+          <p id="progress-hint" class="progress-hint"></p>
+        </div>
+      </div>
+
+      <h2 class="section-title"><span aria-hidden="true">🕌</span> الصلوات الخمس</h2>
+      <div id="prayers-list" class="habit-list"></div>
+
+      <h2 class="section-title"><span aria-hidden="true">🎯</span> عاداتي</h2>
+      <div id="habits-list" class="habit-list"></div>
+
+      <div class="card note-card">
+        <div class="card-title">
+          <span aria-hidden="true">✍️</span>
+          <h2>رسالة لنفسي أقرأها غدًا</h2>
+        </div>
+        <textarea id="tomorrow-note" rows="4"
+          placeholder="اكتب شيئًا يحفّزك غدًا… نصيحة، تذكير، أو كلمة طيبة لنفسك"></textarea>
+        <p id="note-status" class="note-status" role="status"></p>
+      </div>
+
+    </section>
+
+    <!-- ═══════════ صفحة المتابعة ═══════════ -->
+    <section id="view-track" class="view hidden" aria-labelledby="tab-track">
+
+      <div class="card streak-hero" id="streak-hero">
+        <div class="streak-flame" id="streak-flame">🔥</div>
+        <p class="streak-number"><span id="overall-streak">٠</span></p>
+        <p class="streak-caption">يوم ثبات متتالي</p>
+        <p class="level-title" id="level-title"></p>
+        <div class="level-bar" role="progressbar" aria-labelledby="level-next">
+          <div class="level-bar-fill" id="level-bar-fill"></div>
+        </div>
+        <p class="level-next" id="level-next"></p>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-tile">
+          <p class="stat-value" id="stat-best">٠</p>
+          <p class="stat-label">أفضل ستريك</p>
+        </div>
+        <div class="stat-tile">
+          <p class="stat-value" id="stat-full-days">٠</p>
+          <p class="stat-label">أيام مكتملة</p>
+        </div>
+        <div class="stat-tile">
+          <p class="stat-value" id="stat-week">٠٪</p>
+          <p class="stat-label">آخر ٧ أيام</p>
+        </div>
+      </div>
+
+      <h2 class="section-title"><span aria-hidden="true">📊</span> متابعة كل عادة</h2>
+      <div id="track-list" class="track-list"></div>
+
+    </section>
+
+  </main>
+
+  <nav class="tab-bar" role="tablist" aria-label="التنقل">
+    <button id="tab-today" class="tab active" role="tab" aria-selected="true" data-view="view-today">
+      <span class="tab-icon" aria-hidden="true">☀️</span>
+      <span>اليوم</span>
+    </button>
+    <button id="tab-track" class="tab" role="tab" aria-selected="false" data-view="view-track">
+      <span class="tab-icon" aria-hidden="true">🔥</span>
+      <span>المتابعة</span>
+    </button>
+  </nav>
+
+  <div id="confetti-layer" aria-hidden="true"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
