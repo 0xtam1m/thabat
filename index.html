@@ -60,7 +60,10 @@
       <h2 class="section-title"><span aria-hidden="true">🕌</span> الصلوات الخمس</h2>
       <div id="prayers-list" class="habit-list"></div>
 
-      <h2 class="section-title"><span aria-hidden="true">🎯</span> عاداتي</h2>
+      <div class="section-row">
+        <h2 class="section-title"><span aria-hidden="true">🎯</span> عاداتي</h2>
+        <button id="manage-habits-btn" class="manage-btn" type="button">✏️ إدارة</button>
+      </div>
       <div id="habits-list" class="habit-list"></div>
 
       <div class="card note-card">
@@ -121,6 +124,30 @@
       <span>المتابعة</span>
     </button>
   </nav>
+
+  <!-- ═══════════ نافذة إدارة العادات ═══════════ -->
+  <div id="manage-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="manage-title">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="manage-title">إدارة العادات</h2>
+        <button id="manage-close" class="modal-close" type="button" aria-label="إغلاق">✕</button>
+      </div>
+      <p class="modal-note">الصلوات الخمس ثابتة — الإدارة هنا لعاداتك الشخصية. التعديل يحافظ على سجل العادة وستريكها.</p>
+
+      <div id="manage-list" class="manage-list"></div>
+
+      <div class="add-form">
+        <p id="habit-form-title" class="add-title">عادة جديدة</p>
+        <div id="emoji-picker" class="emoji-picker"></div>
+        <div class="add-row">
+          <input id="new-habit-name" type="text" maxlength="30" placeholder="اسم العادة… مثل: قراءة القرآن">
+          <button id="add-habit-btn" class="primary-btn" type="button">إضافة</button>
+        </div>
+        <button id="cancel-edit-btn" class="cancel-btn hidden" type="button">إلغاء التعديل</button>
+        <p id="manage-hint" class="manage-hint" role="status"></p>
+      </div>
+    </div>
+  </div>
 
   <div id="confetti-layer" aria-hidden="true"></div>
 
