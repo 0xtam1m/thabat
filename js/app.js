@@ -12,13 +12,17 @@ const PRAYERS = [
   { id: "isha",    name: "العشاء",  icon: "🌙" },
 ];
 
-const LIFE_HABITS = [
+// العادات الافتراضية — تُنسخ لبيانات المستخدم أول مرة ثم يتحكم بها بحرّية
+const DEFAULT_HABITS = [
   { id: "healthy",  name: "الأكل الصحي",       icon: "🥗" },
   { id: "exercise", name: "الرياضة",           icon: "🏃" },
   { id: "wakeup",   name: "الاستيقاظ المبكر",  icon: "⏰" },
 ];
 
-const ALL_HABITS = [...PRAYERS, ...LIFE_HABITS];
+// كل العادات المتابَعة حاليًا (الصلوات ثابتة + عادات المستخدم)
+function allHabits() {
+  return [...PRAYERS, ...data.habits];
+}
 
 // مستويات الستريك — كأنها لعبة
 const LEVELS = [
@@ -41,9 +45,15 @@ function loadData() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : null;
-    if (parsed && typeof parsed.days === "object" && parsed.days !== null) return parsed;
+    if (parsed && typeof parsed.days === "object" && parsed.days !== null) {
+      // بيانات قديمة قبل خاصية تخصيص العادات → نضيف الافتراضية بنفس المعرّفات
+      if (!Array.isArray(parsed.habits)) {
+        parsed.habits = DEFAULT_HABITS.map((h) => ({ ...h }));
+      }
+      return parsed;
+    }
   } catch (_) { /* بيانات تالفة → نبدأ من جديد */ }
-  return { days: {} };
+  return { days: {}, habits: DEFAULT_HABITS.map((h) => ({ ...h })) };
 }
 
 function saveData() {
@@ -89,7 +99,7 @@ function arNum(n) {
 // "مكتمل" لعادة معيّنة، أو ليوم كامل (كل العادات)
 function habitDoneOn(key, habitId) {
   if (habitId) return isDone(key, habitId);
-  return ALL_HABITS.every((h) => isDone(key, h.id));
+  return allHabits().every((h) => isDone(key, h.id));
 }
 
 // الستريك الحالي: اليوم غير المكتمل بعد لا يكسر السلسلة
@@ -126,12 +136,13 @@ function countFullDays() {
 }
 
 function weekPercent() {
+  const habits = allHabits();
   let done = 0;
   for (let i = 0; i < 7; i++) {
     const key = dateKey(addDays(new Date(), -i));
-    for (const h of ALL_HABITS) if (isDone(key, h.id)) done++;
+    for (const h of habits) if (isDone(key, h.id)) done++;
   }
-  return Math.round((done / (7 * ALL_HABITS.length)) * 100);
+  return Math.round((done / (7 * habits.length)) * 100);
 }
 
 function levelFor(streak) {
@@ -225,8 +236,8 @@ function toggleHabit(habitId) {
 }
 
 function renderProgress() {
-  const doneCount = ALL_HABITS.filter((h) => isDone(todayKey, h.id)).length;
-  const total = ALL_HABITS.length;
+  const doneCount = allHabits().filter((h) => isDone(todayKey, h.id)).length;
+  const total = allHabits().length;
 
   document.getElementById("progress-count").textContent = `${arNum(doneCount)}/${arNum(total)}`;
 
@@ -269,7 +280,7 @@ function renderToday() {
   renderDates();
   renderYesterdayMessage();
   renderHabitList("prayers-list", PRAYERS);
-  renderHabitList("habits-list", LIFE_HABITS);
+  renderHabitList("habits-list", data.habits);
   renderProgress();
 }
 
@@ -309,7 +320,7 @@ function renderTrackList() {
   const container = document.getElementById("track-list");
   container.innerHTML = "";
 
-  for (const habit of ALL_HABITS) {
+  for (const habit of allHabits()) {
     const card = document.createElement("div");
     card.className = "track-card";
 
@@ -378,6 +389,209 @@ function renderTrack() {
   renderHero();
   renderStats();
   renderTrackList();
+}
+
+// ─────────── إدارة العادات ───────────
+
+const HABIT_EMOJIS = ["🎯", "📖", "📿", "💧", "🥗", "🏃", "⏰", "🛌", "✍️", "🧠", "💪", "🚶"];
+
+let selectedEmoji = HABIT_EMOJIS[0];
+let editingHabitId = null;   // العادة الجاري تعديلها في النموذج
+let confirmDeleteId = null;  // الحذف يتطلب ضغطتين للتأكيد
+
+function genHabitId() {
+  return "h" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
+}
+
+function openManage() {
+  resetHabitForm();
+  document.getElementById("manage-modal").classList.remove("hidden");
+  renderManageList();
+  renderEmojiPicker();
+}
+
+function closeManage() {
+  document.getElementById("manage-modal").classList.add("hidden");
+  resetHabitForm();
+}
+
+function resetHabitForm() {
+  editingHabitId = null;
+  confirmDeleteId = null;
+  selectedEmoji = HABIT_EMOJIS[0];
+  document.getElementById("new-habit-name").value = "";
+  document.getElementById("habit-form-title").textContent = "عادة جديدة";
+  document.getElementById("add-habit-btn").textContent = "إضافة";
+  document.getElementById("cancel-edit-btn").classList.add("hidden");
+  setManageHint("");
+}
+
+function setManageHint(text, isError) {
+  const hint = document.getElementById("manage-hint");
+  hint.textContent = text;
+  hint.classList.toggle("error", !!isError);
+}
+
+function renderEmojiPicker() {
+  const picker = document.getElementById("emoji-picker");
+  picker.innerHTML = "";
+  for (const emoji of HABIT_EMOJIS) {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "emoji-chip" + (emoji === selectedEmoji ? " selected" : "");
+    chip.textContent = emoji;
+    chip.setAttribute("aria-pressed", String(emoji === selectedEmoji));
+    chip.addEventListener("click", () => {
+      selectedEmoji = emoji;
+      renderEmojiPicker();
+    });
+    picker.append(chip);
+  }
+}
+
+function renderManageList() {
+  const list = document.getElementById("manage-list");
+  list.innerHTML = "";
+
+  if (data.habits.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "manage-empty";
+    empty.textContent = "لا توجد عادات — أضف أول عادة من الأسفل 👇";
+    list.append(empty);
+    return;
+  }
+
+  for (const habit of data.habits) {
+    const row = document.createElement("div");
+    row.className = "manage-row";
+
+    const icon = document.createElement("span");
+    icon.className = "habit-icon";
+    icon.textContent = habit.icon;
+
+    const name = document.createElement("span");
+    name.className = "habit-name";
+    name.textContent = habit.name;
+
+    const streak = currentStreak(habit.id);
+    const meta = document.createElement("span");
+    meta.className = "manage-streak";
+    meta.textContent = streak > 0 ? `🔥 ${arNum(streak)}` : "";
+
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "icon-btn";
+    editBtn.textContent = "✏️";
+    editBtn.setAttribute("aria-label", `تعديل ${habit.name}`);
+    editBtn.addEventListener("click", () => startEditHabit(habit));
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    if (confirmDeleteId === habit.id) {
+      deleteBtn.className = "icon-btn danger-confirm";
+      deleteBtn.textContent = "تأكيد الحذف؟";
+    } else {
+      deleteBtn.className = "icon-btn";
+      deleteBtn.textContent = "🗑️";
+    }
+    deleteBtn.setAttribute("aria-label", `حذف ${habit.name}`);
+    deleteBtn.addEventListener("click", () => deleteHabit(habit.id));
+
+    row.append(icon, name, meta, editBtn, deleteBtn);
+    list.append(row);
+  }
+}
+
+function startEditHabit(habit) {
+  editingHabitId = habit.id;
+  confirmDeleteId = null;
+  selectedEmoji = HABIT_EMOJIS.includes(habit.icon) ? habit.icon : HABIT_EMOJIS[0];
+  document.getElementById("new-habit-name").value = habit.name;
+  document.getElementById("habit-form-title").textContent = `تعديل «${habit.name}»`;
+  document.getElementById("add-habit-btn").textContent = "حفظ التعديل";
+  document.getElementById("cancel-edit-btn").classList.remove("hidden");
+  setManageHint("");
+  renderManageList();
+  renderEmojiPicker();
+  document.getElementById("new-habit-name").focus();
+}
+
+function saveHabitForm() {
+  const input = document.getElementById("new-habit-name");
+  const name = input.value.trim();
+
+  if (!name) {
+    setManageHint("اكتب اسم العادة أولًا", true);
+    input.focus();
+    return;
+  }
+  const duplicate = data.habits.some(
+    (h) => h.name === name && h.id !== editingHabitId
+  );
+  if (duplicate) {
+    setManageHint("عندك عادة بنفس الاسم", true);
+    return;
+  }
+
+  if (editingHabitId) {
+    const habit = data.habits.find((h) => h.id === editingHabitId);
+    if (habit) {
+      habit.name = name;
+      habit.icon = selectedEmoji;
+    }
+    setManageHint("عُدّلت ✓ — سجلّها وستريكها محفوظان");
+  } else {
+    if (data.habits.length >= 15) {
+      setManageHint("الحد الأقصى ١٥ عادة — قليلٌ دائم خير من كثيرٍ منقطع", true);
+      return;
+    }
+    data.habits.push({ id: genHabitId(), name, icon: selectedEmoji });
+    setManageHint("أُضيفت ✓ وفّقك الله");
+  }
+
+  saveData();
+  const hint = document.getElementById("manage-hint").textContent;
+  resetHabitForm();
+  setManageHint(hint);
+  renderManageList();
+  renderEmojiPicker();
+  renderToday();
+  renderTrack();
+}
+
+function deleteHabit(habitId) {
+  if (confirmDeleteId !== habitId) {
+    // الضغطة الأولى: طلب تأكيد فقط
+    confirmDeleteId = habitId;
+    renderManageList();
+    return;
+  }
+  data.habits = data.habits.filter((h) => h.id !== habitId);
+  confirmDeleteId = null;
+  if (editingHabitId === habitId) resetHabitForm();
+  saveData();
+  setManageHint("حُذفت العادة");
+  renderManageList();
+  renderToday();
+  renderTrack();
+}
+
+function setupManage() {
+  document.getElementById("manage-habits-btn").addEventListener("click", openManage);
+  document.getElementById("manage-close").addEventListener("click", closeManage);
+  document.getElementById("add-habit-btn").addEventListener("click", saveHabitForm);
+  document.getElementById("cancel-edit-btn").addEventListener("click", () => {
+    resetHabitForm();
+    renderManageList();
+    renderEmojiPicker();
+  });
+  document.getElementById("new-habit-name").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") saveHabitForm();
+  });
+  // الضغط على الخلفية المعتمة يغلق النافذة
+  document.getElementById("manage-modal").addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) closeManage();
+  });
 }
 
 // ─────────── الاحتفال ───────────
@@ -456,6 +670,7 @@ function watchDayChange() {
 setupTheme();
 setupTabs();
 setupNote();
+setupManage();
 renderToday();
 renderTrack();
 watchDayChange();
