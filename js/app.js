@@ -25,12 +25,24 @@ const HABITS_V2 = [
   { id: "study",         name: "مذاكرة",               icon: "✍️" },
 ];
 
+const HABITS_V3 = [
+  { id: "sadaqah", name: "الصدقة", icon: "🤲" },
+];
+
+// دفعات العادات المضافة بعد الإطلاق — تُضاف لبيانات المستخدمين الحاليين مرة واحدة لكل دفعة
+const SEED_BATCHES = [
+  { version: 2, habits: HABITS_V2 },
+  { version: 3, habits: HABITS_V3 },
+];
+const CURRENT_SEED_VERSION = 3;
+
 // العادات الافتراضية — تُنسخ لبيانات المستخدم أول مرة ثم يتحكم بها بحرّية
 const DEFAULT_HABITS = [
   { id: "healthy",  name: "الأكل الصحي",       icon: "🥗" },
   { id: "exercise", name: "الرياضة",           icon: "🏃" },
   { id: "wakeup",   name: "الاستيقاظ المبكر",  icon: "⏰" },
   ...HABITS_V2,
+  ...HABITS_V3,
 ];
 
 // كل العادات المتابَعة حاليًا (الصلوات ثابتة + عادات المستخدم)
@@ -63,19 +75,22 @@ function loadData() {
       // بيانات قديمة قبل خاصية تخصيص العادات → نضيف الافتراضية بنفس المعرّفات
       if (!Array.isArray(parsed.habits)) {
         parsed.habits = DEFAULT_HABITS.map((h) => ({ ...h }));
-        parsed.seedVersion = 2;
-      } else if (!(parsed.seedVersion >= 2)) {
-        // ترحيل الإصدار الثاني: نضيف الجديدة فقط دون المساس بعادات المستخدم أو ما حذفه
+        parsed.seedVersion = CURRENT_SEED_VERSION;
+      } else {
+        // ترحيل الدفعات الأحدث فقط، دون المساس بعادات المستخدم أو إعادة ما حذفه
         const existing = new Set(parsed.habits.map((h) => h.id));
-        for (const h of HABITS_V2) {
-          if (!existing.has(h.id)) parsed.habits.push({ ...h });
+        for (const batch of SEED_BATCHES) {
+          if (parsed.seedVersion >= batch.version) continue;
+          for (const h of batch.habits) {
+            if (!existing.has(h.id)) parsed.habits.push({ ...h });
+          }
         }
-        parsed.seedVersion = 2;
+        parsed.seedVersion = CURRENT_SEED_VERSION;
       }
       return parsed;
     }
   } catch (_) { /* بيانات تالفة → نبدأ من جديد */ }
-  return { days: {}, habits: DEFAULT_HABITS.map((h) => ({ ...h })), seedVersion: 2 };
+  return { days: {}, habits: DEFAULT_HABITS.map((h) => ({ ...h })), seedVersion: CURRENT_SEED_VERSION };
 }
 
 function saveData() {
@@ -415,7 +430,7 @@ function renderTrack() {
 
 // ─────────── إدارة العادات ───────────
 
-const HABIT_EMOJIS = ["🎯", "📖", "📿", "🌅", "☀️", "🌙", "🌌", "📚", "🌿", "💧", "🥗", "🏃", "⏰", "🛌", "✍️", "🧠", "💪", "🚶"];
+const HABIT_EMOJIS = ["🎯", "📖", "📿", "🤲", "🌅", "☀️", "🌙", "🌌", "📚", "🌿", "💧", "🥗", "🏃", "⏰", "🛌", "✍️", "🧠", "💪", "🚶"];
 
 let selectedEmoji = HABIT_EMOJIS[0];
 let editingHabitId = null;   // العادة الجاري تعديلها في النموذج
