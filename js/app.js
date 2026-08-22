@@ -12,11 +12,25 @@ const PRAYERS = [
   { id: "isha",    name: "العشاء",  icon: "🌙" },
 ];
 
+// عادات أُضيفت في الإصدار الثاني — تُضاف تلقائيًا لبيانات المستخدمين الحاليين مرة واحدة
+const HABITS_V2 = [
+  { id: "fajrSunnah",    name: "ركعتين الفجر (السنة)", icon: "🌅" },
+  { id: "duha",          name: "ركعتين ضحى",           icon: "☀️" },
+  { id: "wird",          name: "ورد يومي",             icon: "📖" },
+  { id: "morningAdhkar", name: "اذكار الصباح",         icon: "📿" },
+  { id: "eveningAdhkar", name: "اذكار المساء",         icon: "🌙" },
+  { id: "witr",          name: "ركعة وتر",             icon: "🌌" },
+  { id: "reading15",     name: "قراءة ١٥ دقيقة",       icon: "📚" },
+  { id: "tarwih",        name: "ترويح",                icon: "🌿" },
+  { id: "study",         name: "مذاكرة",               icon: "✍️" },
+];
+
 // العادات الافتراضية — تُنسخ لبيانات المستخدم أول مرة ثم يتحكم بها بحرّية
 const DEFAULT_HABITS = [
   { id: "healthy",  name: "الأكل الصحي",       icon: "🥗" },
   { id: "exercise", name: "الرياضة",           icon: "🏃" },
   { id: "wakeup",   name: "الاستيقاظ المبكر",  icon: "⏰" },
+  ...HABITS_V2,
 ];
 
 // كل العادات المتابَعة حاليًا (الصلوات ثابتة + عادات المستخدم)
@@ -49,11 +63,19 @@ function loadData() {
       // بيانات قديمة قبل خاصية تخصيص العادات → نضيف الافتراضية بنفس المعرّفات
       if (!Array.isArray(parsed.habits)) {
         parsed.habits = DEFAULT_HABITS.map((h) => ({ ...h }));
+        parsed.seedVersion = 2;
+      } else if (!(parsed.seedVersion >= 2)) {
+        // ترحيل الإصدار الثاني: نضيف الجديدة فقط دون المساس بعادات المستخدم أو ما حذفه
+        const existing = new Set(parsed.habits.map((h) => h.id));
+        for (const h of HABITS_V2) {
+          if (!existing.has(h.id)) parsed.habits.push({ ...h });
+        }
+        parsed.seedVersion = 2;
       }
       return parsed;
     }
   } catch (_) { /* بيانات تالفة → نبدأ من جديد */ }
-  return { days: {}, habits: DEFAULT_HABITS.map((h) => ({ ...h })) };
+  return { days: {}, habits: DEFAULT_HABITS.map((h) => ({ ...h })), seedVersion: 2 };
 }
 
 function saveData() {
@@ -393,7 +415,7 @@ function renderTrack() {
 
 // ─────────── إدارة العادات ───────────
 
-const HABIT_EMOJIS = ["🎯", "📖", "📿", "💧", "🥗", "🏃", "⏰", "🛌", "✍️", "🧠", "💪", "🚶"];
+const HABIT_EMOJIS = ["🎯", "📖", "📿", "🌅", "☀️", "🌙", "🌌", "📚", "🌿", "💧", "🥗", "🏃", "⏰", "🛌", "✍️", "🧠", "💪", "🚶"];
 
 let selectedEmoji = HABIT_EMOJIS[0];
 let editingHabitId = null;   // العادة الجاري تعديلها في النموذج
@@ -541,8 +563,8 @@ function saveHabitForm() {
     }
     setManageHint("عُدّلت ✓ — سجلّها وستريكها محفوظان");
   } else {
-    if (data.habits.length >= 15) {
-      setManageHint("الحد الأقصى ١٥ عادة — قليلٌ دائم خير من كثيرٍ منقطع", true);
+    if (data.habits.length >= 20) {
+      setManageHint("الحد الأقصى ٢٠ عادة — قليلٌ دائم خير من كثيرٍ منقطع", true);
       return;
     }
     data.habits.push({ id: genHabitId(), name, icon: selectedEmoji });
