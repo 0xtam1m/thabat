@@ -400,6 +400,23 @@ main {
   justify-content: space-between;
 }
 
+/* ─────────── الخط المخصص ─────────── */
+
+/* عند تفعيل خط من جهاز المستخدم يتقدم على الخط الافتراضي */
+body.custom-font {
+  font-family: "ThabatCustomFont", "Tajawal", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.header-actions { display: flex; gap: 8px; }
+
+.file-pick-btn {
+  display: inline-block;
+  cursor: pointer;
+  text-align: center;
+}
+
+.modal-note a { color: var(--accent); font-weight: 700; }
+
 /* ─────────── إدارة العادات ─────────── */
 
 .section-row {
