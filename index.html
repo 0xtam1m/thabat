@@ -23,7 +23,10 @@
       <span class="brand-icon">🌱</span>
       <h1>ثبات</h1>
     </div>
-    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="تبديل الوضع الليلي">🌙</button>
+    <div class="header-actions">
+      <button id="font-btn" class="theme-toggle" type="button" aria-label="خط التطبيق">🖋️</button>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="تبديل الوضع الليلي">🌙</button>
+    </div>
   </header>
 
   <main id="app">
@@ -127,6 +130,26 @@
       <span>المتابعة</span>
     </button>
   </nav>
+
+  <!-- ═══════════ نافذة خط التطبيق ═══════════ -->
+  <div id="font-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="font-title">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="font-title">خط التطبيق</h2>
+        <button id="font-close" class="modal-close" type="button" aria-label="إغلاق">✕</button>
+      </div>
+      <p class="modal-note">
+        تقدر تستعمل <strong>خط ثمانية</strong> من جهازك: حمّله من الموقع الرسمي
+        <a href="https://font.thmanyah.com" target="_blank" rel="noopener">font.thmanyah.com</a>
+        ثم اختر ملفات <bdi>woff2</bdi> من مجلد <bdi>thmanyahsans</bdi> (تقدر تحدد أكثر من ملف).
+        الخط يُحفظ على جهازك فقط ولا يُرفع لأي مكان.
+      </p>
+      <label class="file-pick-btn primary-btn" for="font-files">📂 اختيار ملفات الخط</label>
+      <input id="font-files" type="file" accept=".woff2,.ttf,.otf" multiple hidden>
+      <p id="font-status" class="manage-hint" role="status"></p>
+      <button id="font-remove" class="cancel-btn hidden" type="button">إزالة الخط المخصص والرجوع للافتراضي</button>
+    </div>
+  </div>
 
   <!-- ═══════════ نافذة إدارة العادات ═══════════ -->
   <div id="manage-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="manage-title">

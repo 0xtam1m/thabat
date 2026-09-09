@@ -428,6 +428,129 @@ function renderTrack() {
   renderTrackList();
 }
 
+// ─────────── الخط المخصص ───────────
+// المستخدم يختار ملفات خط من جهازه (مثل خط ثمانية من موقعه الرسمي)
+// فتُحفظ في IndexedDB على جهازه فقط — لا تُرفع لأي خادم التزامًا بترخيص الخط
+
+const FONT_DB = "thabat-fonts";
+const FONT_STORE = "fonts";
+const CUSTOM_FONT_FAMILY = "ThabatCustomFont";
+
+function fontDbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(FONT_DB, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(FONT_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function fontDbPut(files) {
+  return fontDbOpen().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(FONT_STORE, "readwrite");
+    tx.objectStore(FONT_STORE).put(files, "custom");
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+
+function fontDbGet() {
+  return fontDbOpen().then((db) => new Promise((resolve, reject) => {
+    const req = db.transaction(FONT_STORE).objectStore(FONT_STORE).get("custom");
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  }));
+}
+
+function fontDbClear() {
+  return fontDbOpen().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(FONT_STORE, "readwrite");
+    tx.objectStore(FONT_STORE).delete("custom");
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+
+// تخمين وزن الخط من اسم الملف (thmanyahsans-Bold.woff2 → 700)
+function guessFontWeight(fileName) {
+  const n = fileName.toLowerCase();
+  if (n.includes("black") || n.includes("heavy")) return "800";
+  if (n.includes("extrabold")) return "800";
+  if (n.includes("semibold")) return "600";
+  if (n.includes("bold")) return "700";
+  if (n.includes("medium")) return "500";
+  if (n.includes("light")) return "300";
+  return "400";
+}
+
+async function applyCustomFont(entries) {
+  for (const entry of entries) {
+    const face = new FontFace(CUSTOM_FONT_FAMILY, entry.buffer, { weight: entry.weight });
+    await face.load();
+    document.fonts.add(face);
+  }
+  document.body.classList.add("custom-font");
+}
+
+function removeCustomFont() {
+  document.fonts.forEach((face) => {
+    if (face.family === CUSTOM_FONT_FAMILY) document.fonts.delete(face);
+  });
+  document.body.classList.remove("custom-font");
+}
+
+function setFontStatus(text, isError) {
+  const el = document.getElementById("font-status");
+  el.textContent = text;
+  el.classList.toggle("error", !!isError);
+}
+
+async function initCustomFont() {
+  try {
+    const entries = await fontDbGet();
+    if (entries && entries.length) {
+      await applyCustomFont(entries);
+      document.getElementById("font-remove").classList.remove("hidden");
+      setFontStatus(`الخط المخصص مفعّل ✓ (${arNum(entries.length)} أوزان)`);
+    }
+  } catch (_) { /* المتصفح لا يدعم التخزين → نبقى على الخط الافتراضي */ }
+}
+
+function setupFontModal() {
+  const modal = document.getElementById("font-modal");
+  document.getElementById("font-btn").addEventListener("click", () => modal.classList.remove("hidden"));
+  document.getElementById("font-close").addEventListener("click", () => modal.classList.add("hidden"));
+  modal.addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) modal.classList.add("hidden");
+  });
+
+  document.getElementById("font-files").addEventListener("change", async (e) => {
+    const files = [...e.target.files];
+    if (!files.length) return;
+    try {
+      const entries = [];
+      for (const f of files) {
+        entries.push({ name: f.name, weight: guessFontWeight(f.name), buffer: await f.arrayBuffer() });
+      }
+      removeCustomFont();
+      await applyCustomFont(entries);
+      await fontDbPut(entries);
+      document.getElementById("font-remove").classList.remove("hidden");
+      setFontStatus(`تم تفعيل الخط ✓ (${arNum(entries.length)} ${entries.length === 1 ? "ملف" : "ملفات"}) — محفوظ على جهازك`);
+    } catch (_) {
+      setFontStatus("تعذّر تحميل الخط — تأكد أن الملفات بصيغة woff2 أو ttf أو otf", true);
+    }
+    e.target.value = "";
+  });
+
+  document.getElementById("font-remove").addEventListener("click", async () => {
+    try { await fontDbClear(); } catch (_) {}
+    removeCustomFont();
+    document.getElementById("font-remove").classList.add("hidden");
+    setFontStatus("رجعنا للخط الافتراضي");
+  });
+}
+
 // ─────────── إدارة العادات ───────────
 
 const HABIT_EMOJIS = ["🎯", "📖", "📿", "🤲", "🌅", "☀️", "🌙", "🌌", "📚", "🌿", "💧", "🥗", "🏃", "⏰", "🛌", "✍️", "🧠", "💪", "🚶"];
@@ -708,6 +831,8 @@ setupTheme();
 setupTabs();
 setupNote();
 setupManage();
+setupFontModal();
+initCustomFont();
 renderToday();
 renderTrack();
 watchDayChange();
