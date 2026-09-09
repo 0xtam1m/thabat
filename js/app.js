@@ -483,6 +483,66 @@ function guessFontWeight(fileName) {
   return "400";
 }
 
+// استخراج ملفات الخط من ملف zip داخل المتصفح (بدون أي مكتبات)
+async function extractFontsFromZip(buffer) {
+  const dv = new DataView(buffer);
+  const u8 = new Uint8Array(buffer);
+
+  // البحث عن نهاية سجل الفهرس المركزي (EOCD) من آخر الملف
+  let eocd = -1;
+  const stop = Math.max(0, buffer.byteLength - 22 - 65535);
+  for (let i = buffer.byteLength - 22; i >= stop; i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error("ليس ملف zip صالحًا");
+
+  const count = dv.getUint16(eocd + 10, true);
+  let off = dv.getUint32(eocd + 16, true);
+  const decoder = new TextDecoder();
+  const entries = [];
+  for (let i = 0; i < count; i++) {
+    if (dv.getUint32(off, true) !== 0x02014b50) break;
+    const method = dv.getUint16(off + 10, true);
+    const compSize = dv.getUint32(off + 20, true);
+    const nameLen = dv.getUint16(off + 28, true);
+    const extraLen = dv.getUint16(off + 30, true);
+    const commentLen = dv.getUint16(off + 32, true);
+    const localOff = dv.getUint32(off + 42, true);
+    const name = decoder.decode(u8.subarray(off + 46, off + 46 + nameLen));
+    entries.push({ name, method, compSize, localOff });
+    off += 46 + nameLen + extraLen + commentLen;
+  }
+
+  const isFont = (n) => /\.(woff2|ttf|otf)$/i.test(n) && !n.includes("__MACOSX") && !n.split("/").pop().startsWith(".");
+  // نفضّل أوزان Sans بصيغة woff2 (الأنسب للواجهة)، وإلا فأي ملفات خط في الأرشيف
+  let picked = entries.filter((e) => isFont(e.name) && /\.woff2$/i.test(e.name));
+  if (picked.some((e) => /sans/i.test(e.name))) picked = picked.filter((e) => /sans/i.test(e.name));
+  if (!picked.length) picked = entries.filter((e) => isFont(e.name));
+  if (!picked.length) throw new Error("لا توجد ملفات خط داخل الملف المضغوط");
+
+  const out = [];
+  for (const e of picked) {
+    const lh = e.localOff;
+    if (dv.getUint32(lh, true) !== 0x04034b50) continue;
+    const nLen = dv.getUint16(lh + 26, true);
+    const xLen = dv.getUint16(lh + 28, true);
+    const start = lh + 30 + nLen + xLen;
+    const comp = u8.slice(start, start + e.compSize);
+    let data;
+    if (e.method === 0) {
+      data = comp.buffer;
+    } else if (e.method === 8) {
+      const ds = new DecompressionStream("deflate-raw");
+      data = await new Response(new Blob([comp]).stream().pipeThrough(ds)).arrayBuffer();
+    } else {
+      continue;
+    }
+    out.push({ name: e.name.split("/").pop(), weight: guessFontWeight(e.name), buffer: data });
+  }
+  if (!out.length) throw new Error("تعذر استخراج ملفات الخط");
+  return out;
+}
+
 async function applyCustomFont(entries) {
   for (const entry of entries) {
     const face = new FontFace(CUSTOM_FONT_FAMILY, entry.buffer, { weight: entry.weight });
@@ -527,18 +587,24 @@ function setupFontModal() {
   document.getElementById("font-files").addEventListener("change", async (e) => {
     const files = [...e.target.files];
     if (!files.length) return;
+    setFontStatus("جاري تحميل الخط…");
     try {
       const entries = [];
       for (const f of files) {
-        entries.push({ name: f.name, weight: guessFontWeight(f.name), buffer: await f.arrayBuffer() });
+        if (/\.zip$/i.test(f.name) || f.type === "application/zip") {
+          entries.push(...await extractFontsFromZip(await f.arrayBuffer()));
+        } else if (/\.(woff2|ttf|otf)$/i.test(f.name)) {
+          entries.push({ name: f.name, weight: guessFontWeight(f.name), buffer: await f.arrayBuffer() });
+        }
       }
+      if (!entries.length) throw new Error("لا ملفات خط");
       removeCustomFont();
       await applyCustomFont(entries);
       await fontDbPut(entries);
       document.getElementById("font-remove").classList.remove("hidden");
-      setFontStatus(`تم تفعيل الخط ✓ (${arNum(entries.length)} ${entries.length === 1 ? "ملف" : "ملفات"}) — محفوظ على جهازك`);
+      setFontStatus(`تم تفعيل الخط ✓ (${arNum(entries.length)} ${entries.length === 1 ? "وزن" : "أوزان"}) — محفوظ على جهازك`);
     } catch (_) {
-      setFontStatus("تعذّر تحميل الخط — تأكد أن الملفات بصيغة woff2 أو ttf أو otf", true);
+      setFontStatus("تعذّر تحميل الخط — اختر ملف zip الذي حملته من الموقع، أو ملفات woff2 أو ttf أو otf", true);
     }
     e.target.value = "";
   });
