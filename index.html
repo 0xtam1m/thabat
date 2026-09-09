@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0e8a68" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#131c18" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="ثبات — تطبيق لمتابعة العادات اليومية والصلوات">
+  <title>ثبات | متابعة العادات اليومية</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <!-- الأيقونة الداكنة هي الافتراضية، والفاتحة تظهر تلقائيًا في وضع النهار حيث يدعم المتصفح -->
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-dark-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" media="(prefers-color-scheme: light)">
+  <link rel="apple-touch-icon" href="icons/icon-dark-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-icon">🌱</span>
+      <h1>ثبات</h1>
+    </div>
+    <div class="header-actions">
+      <button id="font-btn" class="theme-toggle" type="button" aria-label="خط التطبيق">🖋️</button>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="تبديل الوضع الليلي">🌙</button>
+    </div>
+  </header>
+
+  <main id="app">
+
+    <!-- ═══════════ صفحة اليوم ═══════════ -->
+    <section id="view-today" class="view" aria-labelledby="tab-today">
+
+      <div class="date-block">
+        <p id="date-gregorian" class="date-main"></p>
+        <p id="date-hijri" class="date-sub"></p>
+      </div>
+
+      <div class="card message-card" id="yesterday-card">
+        <div class="card-title">
+          <span aria-hidden="true">💌</span>
+          <h2>رسالة من أمس</h2>
+        </div>
+        <p id="yesterday-message" class="yesterday-text"></p>
+      </div>
+
+      <div class="card progress-card">
+        <div class="progress-ring-wrap">
+          <svg class="progress-ring" viewBox="0 0 120 120" role="img" aria-labelledby="progress-label">
+            <circle class="ring-track" cx="60" cy="60" r="52"></circle>
+            <circle id="ring-fill" class="ring-fill" cx="60" cy="60" r="52"></circle>
+          </svg>
+          <div class="progress-center">
+            <span id="progress-count" class="progress-count">٠/٨</span>
+          </div>
+        </div>
+        <div class="progress-info">
+          <p id="progress-label" class="progress-title">إنجاز اليوم</p>
+          <p id="progress-hint" class="progress-hint"></p>
+        </div>
+      </div>
+
+      <h2 class="section-title"><span aria-hidden="true">🕌</span> الصلوات الخمس</h2>
+      <div id="prayers-list" class="habit-list"></div>
+
+      <div class="section-row">
+        <h2 class="section-title"><span aria-hidden="true">🎯</span> عاداتي</h2>
+        <button id="manage-habits-btn" class="manage-btn" type="button">✏️ إدارة</button>
+      </div>
+      <div id="habits-list" class="habit-list"></div>
+
+      <div class="card note-card">
+        <div class="card-title">
+          <span aria-hidden="true">✍️</span>
+          <h2>رسالة لنفسي أقرأها غدًا</h2>
+        </div>
+        <textarea id="tomorrow-note" rows="4"
+          placeholder="اكتب شيئًا يحفّزك غدًا… نصيحة، تذكير، أو كلمة طيبة لنفسك"></textarea>
+        <p id="note-status" class="note-status" role="status"></p>
+      </div>
+
+    </section>
+
+    <!-- ═══════════ صفحة المتابعة ═══════════ -->
+    <section id="view-track" class="view hidden" aria-labelledby="tab-track">
+
+      <div class="card streak-hero" id="streak-hero">
+        <div class="streak-flame" id="streak-flame">🔥</div>
+        <p class="streak-number"><span id="overall-streak">٠</span></p>
+        <p class="streak-caption">يوم ثبات متتالي</p>
+        <p class="level-title" id="level-title"></p>
+        <div class="level-bar" role="progressbar" aria-labelledby="level-next">
+          <div class="level-bar-fill" id="level-bar-fill"></div>
+        </div>
+        <p class="level-next" id="level-next"></p>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-tile">
+          <p class="stat-value" id="stat-best">٠</p>
+          <p class="stat-label">أفضل ستريك</p>
+        </div>
+        <div class="stat-tile">
+          <p class="stat-value" id="stat-full-days">٠</p>
+          <p class="stat-label">أيام مكتملة</p>
+        </div>
+        <div class="stat-tile">
+          <p class="stat-value" id="stat-week">٠٪</p>
+          <p class="stat-label">آخر ٧ أيام</p>
+        </div>
+      </div>
+
+      <h2 class="section-title"><span aria-hidden="true">📊</span> متابعة كل عادة</h2>
+      <div id="track-list" class="track-list"></div>
+
+    </section>
+
+  </main>
+
+  <nav class="tab-bar" role="tablist" aria-label="التنقل">
+    <button id="tab-today" class="tab active" role="tab" aria-selected="true" data-view="view-today">
+      <span class="tab-icon" aria-hidden="true">☀️</span>
+      <span>اليوم</span>
+    </button>
+    <button id="tab-track" class="tab" role="tab" aria-selected="false" data-view="view-track">
+      <span class="tab-icon" aria-hidden="true">🔥</span>
+      <span>المتابعة</span>
+    </button>
+  </nav>
+
+  <!-- ═══════════ نافذة خط التطبيق ═══════════ -->
+  <div id="font-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="font-title">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="font-title">خط التطبيق</h2>
+        <button id="font-close" class="modal-close" type="button" aria-label="إغلاق">✕</button>
+      </div>
+      <p class="modal-note">
+        تقدر تستعمل <strong>خط ثمانية</strong> من جهازك: حمّله من الموقع الرسمي
+        <a href="https://font.thmanyah.com" target="_blank" rel="noopener">font.thmanyah.com</a>
+        ثم اختر <strong>الملف المضغوط (zip) نفسه</strong> من التنزيلات — التطبيق يستخرج الخط منه تلقائيًا.
+        وإن كان الملف مفكوكًا عندك، اختر ملفات الخط مباشرة.
+        الخط يُحفظ على جهازك فقط ولا يُرفع لأي مكان.
+      </p>
+      <label class="file-pick-btn primary-btn" for="font-files">📂 اختيار ملف الخط (zip أو woff2)</label>
+      <input id="font-files" type="file" multiple hidden>
+      <p id="font-status" class="manage-hint" role="status"></p>
+      <button id="font-remove" class="cancel-btn hidden" type="button">إزالة الخط المخصص والرجوع للافتراضي</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ نافذة إدارة العادات ═══════════ -->
+  <div id="manage-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="manage-title">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="manage-title">إدارة العادات</h2>
+        <button id="manage-close" class="modal-close" type="button" aria-label="إغلاق">✕</button>
+      </div>
+      <p class="modal-note">الصلوات الخمس ثابتة — الإدارة هنا لعاداتك الشخصية. التعديل يحافظ على سجل العادة وستريكها.</p>
+
+      <div id="manage-list" class="manage-list"></div>
+
+      <div class="add-form">
+        <p id="habit-form-title" class="add-title">عادة جديدة</p>
+        <div id="emoji-picker" class="emoji-picker"></div>
+        <div class="add-row">
+          <input id="new-habit-name" type="text" maxlength="30" placeholder="اسم العادة… مثل: قراءة القرآن">
+          <button id="add-habit-btn" class="primary-btn" type="button">إضافة</button>
+        </div>
+        <button id="cancel-edit-btn" class="cancel-btn hidden" type="button">إلغاء التعديل</button>
+        <p id="manage-hint" class="manage-hint" role="status"></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="confetti-layer" aria-hidden="true"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
