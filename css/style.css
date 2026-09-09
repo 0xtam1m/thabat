@@ -227,6 +227,9 @@ main {
 
 /* ─────────── رسالة الغد ─────────── */
 
+/* نفس المسافة بين عناصر قائمة العادات (gap: 8px) */
+.note-card { margin-top: 8px; }
+
 .note-card textarea {
   width: 100%;
   border: 1px solid var(--hairline);
